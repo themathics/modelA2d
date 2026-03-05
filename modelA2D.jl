@@ -127,34 +127,46 @@ end
 
 
 ## Thermalization study
-iter = parse(Int, ARGS[3])
+max_iter = parse(Int, ARGS[3])
 
 m² = -3.824f0
 
-if iter == 0
-	ϕ = hotstart(L)
+iter = 1
+
+filename(iter) = "thermalized_L_$(L)_mass_$(m²)_id_$(seed)_$(iter).jld2"
+
+if isfile(filename(1))
+    file = jldopen(filename(1), "r")
+    global ϕ = Array(file["ϕ"])
+    close(file)
 else
-	file = jldopen("thermalized_L_$(L)_mass_$(m²)_id_$(seed)_$(iter).jld2", "r")
-	ϕ = Array(file["ϕ"])
+    global ϕ = hotstart(L)
+    save_state(filename(1), ϕ, m²)
 end
 
-# near critical value
+for iter = 2:max_iter
+    if isfile(filename(iter))
+        file = jldopen(filename(iter), "r")
+        global ϕ = Array(file["ϕ"])
+        close(file)
+    else
+        thermalize(m², ϕ, L, 100*L^2)
+		maxt = 500*L^2
+        save_state(filename(iter), ϕ, m²)
 
-thermalize(m²,ϕ, L, 100*L^2)
 
-maxt = 500*L^2
-save_state("thermalized_L_$(L)_mass_$(m²)_id_$(seed)_$(iter+1).jld2", ϕ, m²)
-
-open("output_$L.dat","w") do io 
-	for i in 0:maxt
-		(M,ϕk) = op(ϕ, L)
-		Printf.@printf(io, "%i %f", i, M)
-		for kx in 1:L
-			Printf.@printf(io, " %f %f", real(ϕk[kx]), imag(ϕk[kx]))
-		end 
-		Printf.@printf(io, "\n")
-		thermalize(m², ϕ, L, 20)
-	end
+		open("output_$(L)_$(iter).dat","w") do io 
+			for i in 0:maxt
+				(M,ϕk) = op(ϕ, L)
+				Printf.@printf(io, "%i %f", i, M)
+				for kx in 1:L
+					Printf.@printf(io, " %f %f", real(ϕk[kx]), imag(ϕk[kx]))
+				end 
+				Printf.@printf(io, "\n")
+				thermalize(m², ϕ, L, 20)
+			end
+		end
+    end
 end
 
 ##
