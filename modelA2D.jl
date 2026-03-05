@@ -126,22 +126,7 @@ end
 
 
 
-## Thermalization study
-
-function generatedat(iter)
-	maxt = 500*L^2
-	open("output_$(L)_$(iter).dat","w") do io 
-		for i in 0:maxt
-			(M,ϕk) = op(ϕ, L)
-			Printf.@printf(io, "%i %f", i, M)
-			for kx in 1:L
-				Printf.@printf(io, " %f %f", real(ϕk[kx]), imag(ϕk[kx]))
-				end 
-			Printf.@printf(io, "\n")
-			thermalize(m², ϕ, L, 20)
-		end
-	end
-end
+## Thermalization stud
 
 max_iter = parse(Int, ARGS[3])
 
@@ -174,9 +159,6 @@ else
     	else
         	thermalize(m², ϕ, L, 100*L^2)
         	save_state(filename(iter), ϕ, m²)
-
-			generatedat(iter)
-
 			end
     	end
 	end
