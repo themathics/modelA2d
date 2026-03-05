@@ -131,7 +131,7 @@ iter = parse(Int, ARGS[3])
 
 m² = -3.824f0
 
-if init == 0
+if iter == 0
 	ϕ = hotstart(L)
 else
 	file = jldopen("thermalized_L_$(L)_mass_$(m²)_id_$(seed)_$(iter).jld2", "r")
