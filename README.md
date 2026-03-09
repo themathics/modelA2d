@@ -4,4 +4,4 @@ Forked from https://github.com/vskokov/modelA.
 
 Usage
 
-`julia -t N modelA2D.jl [seed] [L] [iter]`
+`julia -t N modelA2D.jl [seed] [L]`
