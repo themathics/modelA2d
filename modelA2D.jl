@@ -86,8 +86,6 @@ function sweep(m², ϕ, L)
         end
     end
     
-    Threads.barrier()
-
     Threads.@threads for i in 1:L
         for j in 1:L
             if (i+j) % 2 != 0
@@ -144,3 +142,4 @@ end
 
 thermalize(m², ϕ, L, 100*L^2)
 save_state(filename, ϕ, m²)
+
