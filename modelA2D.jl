@@ -31,7 +31,7 @@ const T = 1.0f0
 const Δt = 0.04f0/Γ
 ### end
 
-const Rate = Float32(sqrt(2.0*Δt*Γ))
+const Rate = Float32(sqrt(2.0f0*Δt*Γ))
 
 ### Nearest neighbors
 NNp_a = zeros(Int16,L)
@@ -58,10 +58,10 @@ function ΔH(m², ϕ, ϕt, x)
 	Δϕ2= ϕt^2 - ϕold^2
 
 	## nearest neighbours
-	@inbounds Σnn = ϕ[ NNp[x[1]] , x[2]] + ϕ[x[1], NNp[x[2]]] + ϕ[x[1],x[2]]
-	@inbounds Σnn = Σnn + ϕ[ NNm[x[1]] ,x[2]] + ϕ[x[1],  NNm[x[2]]] + ϕ[x[1],x[2]]
+	@inbounds Σnn = ϕ[ NNp[x[1]] , x[2]] + ϕ[x[1], NNp[x[2]]]
+	@inbounds Σnn = Σnn + ϕ[ NNm[x[1]] ,x[2]] + ϕ[x[1],  NNm[x[2]]]
 
-	kinet_term =  3.0f0 * Δϕ2 - Δϕ * Σnn
+	kinet_term =  2.0f0 * Δϕ2 - Δϕ * Σnn
 	poten_term =  0.5f0 * m² * Δϕ2 + 0.25f0 * λ * (ϕt^4-ϕold^4)
 
 	kinet_term + poten_term
@@ -77,29 +77,31 @@ function MCstep(m², ϕ, x)
 	end
 end
 
-
 function sweep(m², ϕ, L)
-	Threads.@threads for i in 1:L
-		for j in 1:L
-				if (i+j)%2 == 0
-					MCstep(m², ϕ, (i,j))
-				end
-		end
-	end
+    Threads.@threads for i in 1:L
+        for j in 1:L
+            if (i+j) % 2 == 0
+                MCstep(m², ϕ, (i,j))
+            end
+        end
+    end
+    
+    Threads.barrier()
 
-	Threads.@threads for i in 1:L
-		for j in 1:L
-			if (i+j)%2 !=0
-				MCstep(m², ϕ, (i,j))
-			end
-		end
-	end
+    Threads.@threads for i in 1:L
+        for j in 1:L
+            if (i+j) % 2 != 0
+                MCstep(m², ϕ, (i,j))
+            end
+        end
+    end
 end
+
 
 function op(ϕ, L)
 	ϕk = fft(ϕ)
 	average = ϕk[1,1]/L^2
-	(real(average),ϕk[:,1,1])
+	(real(average),ϕk[:,1])
 end
 
 
@@ -111,9 +113,9 @@ end
 
 function save_state(filename, ϕ, m², i=nothing)
     if isnothing(i)
-        jldsave(filename, true; ϕ=ϕ, m²=m²)
+        jldsave(filename, true; ϕ=ϕ, m²=m², compress=true)
     else
-        jldsave(filename, true; ϕ=ϕ, m²=m², i=i)
+        jldsave(filename, true; ϕ=ϕ, m²=m², i=i, compress=true)
     end
 end
 
@@ -126,39 +128,19 @@ end
 
 
 
-## Thermalization stud
-
-max_iter = parse(Int, ARGS[3])
+## Thermalization study
 
 m² = -3.824f0
 
-iter = 1
+filename = "thermalized_L_$(L)_mass_$(m²)_id_$(seed).jld2"
 
-filename(iter) = "thermalized_L_$(L)_mass_$(m²)_id_$(seed)_$(iter).jld2"
-
-if isfile(filename(max_iter))
-	file = jldopen(filename(max_iter), "r")
+if isfile(filename)
+	file = jldopen(filename, "r")
     global ϕ = Array(file["ϕ"])
     close(file)
-	generatedat(max_iter)
-else	
-	if isfile(filename(1))
-    	file = jldopen(filename(1), "r")
-    	global ϕ = Array(file["ϕ"])
-    	close(file)
-	else
-    	global ϕ = hotstart(L)
-    	save_state(filename(1), ϕ, m²)
-	end
+else
+    global ϕ = hotstart(L)
+end
 
-	for iter = 2:max_iter
-    	if isfile(filename(iter))
-        	file = jldopen(filename(iter), "r")
-        	global ϕ = Array(file["ϕ"])
-        	close(file)
-    	else
-        	thermalize(m², ϕ, L, 100*L^2)
-        	save_state(filename(iter), ϕ, m²)
-			end
-    	end
-	end
+thermalize(m², ϕ, L, 100*L^2)
+save_state(filename, ϕ, m²)
