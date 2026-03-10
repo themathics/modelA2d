@@ -46,6 +46,8 @@ NNm_a[1] = L
 # for performance
 NNp=@SVector [NNp_a[i] for i in 1:L]
 NNm=@SVector [NNm_a[i] for i in 1:L]
+const even_sites = [(i,j) for i in 1:L for j in 1:L if (i+j) % 2 == 0]
+const odd_sites  = [(i,j) for i in 1:L for j in 1:L if (i+j) % 2 != 0]
 ###
 
 function hotstart(n)
@@ -77,21 +79,13 @@ function MCstep(m², ϕ, x)
 	end
 end
 
+
 function sweep(m², ϕ, L)
-    Threads.@threads for i in 1:L
-        for j in 1:L
-            if (i+j) % 2 == 0
-                MCstep(m², ϕ, (i,j))
-            end
-        end
+    Threads.@threads for k in eachindex(even_sites)
+        MCstep(m², ϕ, even_sites[k])
     end
-    
-    Threads.@threads for i in 1:L
-        for j in 1:L
-            if (i+j) % 2 != 0
-                MCstep(m², ϕ, (i,j))
-            end
-        end
+    Threads.@threads for k in eachindex(odd_sites)
+        MCstep(m², ϕ, odd_sites[k])
     end
 end
 
