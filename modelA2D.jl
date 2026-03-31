@@ -99,7 +99,7 @@ end
 function op(ϕ, L)
 	ϕk = fft(ϕ)
 	average = ϕk[1,1]/L^2
-	(real(average),ϕk[:,1])
+	M = (real(average),ϕk[:,1])
 end
 
 
@@ -142,4 +142,3 @@ end
 
 thermalize(m², ϕ, L, 100*L^2)
 save_state(filename, ϕ, m²)
-
